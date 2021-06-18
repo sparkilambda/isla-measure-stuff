@@ -99,7 +99,7 @@ def _transform_image(image_stream: Stream, bg_image: Stream, image_trans: ImageT
     return positioned_image
 
 
-def _overlay_isla(image_stream: Stream, isla_stream: Stream, isla_scale: float, isla_position: np.ndarray):
+def _overlay_isla(image_stream: Stream, isla_stream: Stream, isla_scale: float, isla_position: np.ndarray) -> Stream:
     scaled_isla = isla_stream.filter('scale', f'in_w*{isla_scale}', f'in_h*{isla_scale}')
     return ffmpeg.overlay(image_stream, scaled_isla, x=isla_position[0], y=isla_position[1])
 
