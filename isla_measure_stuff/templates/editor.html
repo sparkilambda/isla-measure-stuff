@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-+0n0xVW2eSR5OomGNYDnhzAbDsOXxcvSN1TPprVMTNDbiYZCxYbOOl7+AMvyTG2x" crossorigin="anonymous">
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <title>Isla Measure Stuff</title>
+</head>
+<body>
+  <div class="container">
+    <div class="col"></div>
+      <h1>Isla Measure Stuff</h1>
+
+      <form method="POST" action="/generate-video" class="measurement-form">
+        <div class="row mb-3">
+          <div class="col-12 col-lg-9 mb-3">
+            <div class="file-input row py-5">
+              <div class="file-input__content text-center mx-auto">
+                <input id="file" class="file-input__file" type="file" name="file" />
+                <label for="file"><strong>Choose an image</strong><span class="file-input__dragndrop"> or drag it here</span>.</label>
+              </div>
+            </div>
+            <div class="line-editor row">
+              <canvas></canvas>
+            </div>
+          </div>
+
+          <div class="col">
+            <fieldset class="mb-3">
+              <legend>Measurement type</legend>
+              <div class="form-check">
+                <input id="measurementTypeBig" class="form-check-input" type="radio" name="measurement-type" value="big">
+                <label for="measurementTypeBig" class="form-check-label">Big</label>
+              </div>
+              <div class="form-check">
+                <input id="measurementTypeSmall" class="form-check-input" type="radio" name="measurement-type" value="small">
+                <label for="measurementTypeSmall" class="form-check-label">Small</label>
+              </div>
+            </fieldset>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="video-display col mb-3 d-flex justify-content-center">
+        <div class="video-diaplay__loading-spinner spinner-border" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <div class="video-display__content row">
+          <video controls>
+            <source type="video/mp4">
+          </video>
+          <a class="btn btn-primary" role="button">Download</a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script type="text/javascript" src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

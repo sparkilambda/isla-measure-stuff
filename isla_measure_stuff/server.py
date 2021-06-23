@@ -2,7 +2,14 @@ import os
 from typing import Dict
 import uuid
 
-from flask import Flask, flash, request, redirect, send_file
+from flask import (
+    flash,
+    Flask,
+    redirect,
+    render_template,
+    request,
+    send_file,
+)
 import numpy as np
 from werkzeug.datastructures import FileStorage
 
@@ -22,7 +29,12 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/', methods=['POST'])
+@app.route('/')
+def editor():
+    return render_template('editor.html')
+
+
+@app.route('/generate-video', methods=['POST'])
 def generate_video():
     # check if the post request has the file part
     if 'file' not in request.files:
@@ -38,7 +50,6 @@ def generate_video():
 
     if file and allowed_file(file.filename):
         output_file_path = _process_file(file, request.form.to_dict())
-        print(output_file_path)
         return send_file(output_file_path, download_name=DOWNLOAD_FILENAME, as_attachment=True)
 
 

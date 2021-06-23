@@ -1,0 +1,47 @@
+canvas {
+  padding: 0 !important;
+}
+
+.file-input__file,
+.file-input__dragndrop {
+  display: none;
+}
+
+.file-input.has-drag-and-drop {
+  background-color: white;
+  outline: 2px dashed black;
+  outline-offset: -10px;
+}
+
+.file-input.has-drag-and-drop .file-input__dragndrop {
+  display: inline;
+}
+
+.file-input.is-dragover {
+  background-color: lightgray;
+}
+
+.file-input.file-selected {
+  display: none;
+}
+
+.line-editor {
+  display: none;
+}
+
+.line-editor.has-file {
+  display: inline;
+}
+
+.video-diaplay__loading-spinner,
+.video-display__content {
+  display: none;
+}
+
+.video-display.is-loading .video-diaplay__loading-spinner {
+  display: inline;
+}
+
+.video-display.has-video .video-display__content {
+  display: inline;
+}
