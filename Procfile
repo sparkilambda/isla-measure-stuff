@@ -1,0 +1,1 @@
+web: gunicorn isla_measure_stuff.server:app
