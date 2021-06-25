@@ -22,7 +22,10 @@ def match_measurement_lines(image_dimensions: np.ndarray, origin_measure: Line, 
     rotation = angle_between(dest_measure.vector, origin_measure.vector)
     rotated_width = rotate_vector(np.array([image_dimensions[0], 0]), rotation)
     rotated_height = rotate_vector(np.array([0, image_dimensions[1]]), rotation)
-    rotation_dimensions = np.array([rotated_width[0] + rotated_height[0], rotated_width[1] + rotated_height[1]])
+    rotation_dimensions = np.array([
+        abs(rotated_width[0]) + abs(rotated_height[0]),
+        abs(rotated_width[1]) + abs(rotated_height[1])
+    ])
 
     # Scale
     scale = np.linalg.norm(dest_measure.vector) / np.linalg.norm(origin_measure.vector)
