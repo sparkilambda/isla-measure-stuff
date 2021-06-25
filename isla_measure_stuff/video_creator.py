@@ -36,12 +36,12 @@ class MeasurementType(Enum):
 
 _DATA_FOR_TYPE = {
     MeasurementType.BIG: IslaMeasurementData(
-        filename='resources/IslaBig.mov',
+        filename='resources/IslaBig.webm',
         measure_position=Line(np.array([1240, 490]), np.array([1873, 487])),
         boundaries=(510, 1900)
     ),
     MeasurementType.SMALL: IslaMeasurementData(
-        filename='resources/IslaSmall.mov',
+        filename='resources/IslaSmall.webm',
         measure_position=Line(np.array([1381, 740]), np.array([1496, 740])),
         boundaries=(510, 1530)
     )
@@ -74,7 +74,7 @@ def create_video(input_image_path, measure_type: MeasurementType, measurement: L
         fit_image_transformations
     )
 
-    isla_stream = ffmpeg.input(isla_data.filename)
+    isla_stream = ffmpeg.input(isla_data.filename, vcodec='libvpx-vp9')
     generated_video = _overlay_isla(
         transformed_image,
         isla_stream,
