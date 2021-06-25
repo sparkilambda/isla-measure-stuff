@@ -63,10 +63,6 @@
   function getCanvasMousePosition(ev) {
     var x = ev.layerX;
     var y = ev.layerY;
-    // var x = ev.clientX - editorCanvas.offsetLeft;
-    // var y = ev.clientY - editorCanvas.offsetTop;
-    // var x = ev[window.mouseVariable + 'X'] - editorCanvas.offsetLeft;
-    // var y = ev[window.mouseVariable + 'Y'] - editorCanvas.offsetTop;
     return [ x, y ];
   }
 
@@ -93,6 +89,7 @@
   editorCanvas.onmouseup = function (ev) {
     if (isDrawingLine) {
       var position = getCanvasMousePosition(ev);
+      // Drawing line with click and hold
       if (position[0] != canvasLineStart[0] || position[1] != canvasLineStart[1]) {
         canvasLineEnd = position;
         isDrawingLine = false;
