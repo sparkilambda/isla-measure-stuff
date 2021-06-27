@@ -32,21 +32,21 @@ class PollingWorker:
             expires_at=time.time() + result_ttl,
             future=future
         )
-        print('##########', self._executions)
+        print('########## process', self._executions)
 
         return execution_id
 
     def is_done(self, execution_id: str) -> bool:
         """Returns if the execution for the given ID has already finished."""
 
-        print('##########', self._executions)
+        print('########## is_done', self._executions)
         execution = self._executions[execution_id]
         return execution.future.done()
 
     def get_result(self, execution_id: str):
         """Returns the result for the execution with the given ID."""
 
-        print('##########', self._executions)
+        print('########## get_result', self._executions)
         execution = self._executions[execution_id]
         return execution.future.result()
 
