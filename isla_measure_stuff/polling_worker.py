@@ -39,16 +39,22 @@ class PollingWorker:
     def is_done(self, execution_id: str) -> bool:
         """Returns if the execution for the given ID has already finished."""
 
-        print('########## is_done', self._executions)
-        execution = self._executions[execution_id]
-        return execution.future.done()
+        try:
+            print('########## is_done', self._executions)
+            execution = self._executions[execution_id]
+            return execution.future.done()
+        finally:
+            print('########## is_done', self._executions)
 
     def get_result(self, execution_id: str):
         """Returns the result for the execution with the given ID."""
 
-        print('########## get_result', self._executions)
-        execution = self._executions[execution_id]
-        return execution.future.result()
+        try:
+            print('########## get_result', self._executions)
+            execution = self._executions[execution_id]
+            return execution.future.result()
+        finally:
+            print('########## get_result', self._executions)
 
     def _clean_expired_executions(self):
         expired_ids = [
