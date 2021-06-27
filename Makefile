@@ -7,4 +7,4 @@ setup:
 	pip install -r requirements.txt
 
 run-server:
-	FLASK_APP=$(PROJECT_FOLDER)/server.py FLASK_ENV=development flask run
+	python -m isla_measure_stuff.server

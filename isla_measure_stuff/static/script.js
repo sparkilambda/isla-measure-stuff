@@ -67,9 +67,9 @@
         editorCanvas.width = lineEditor.offsetWidth;
         editorCanvas.height = editorCanvas.width * img.height / img.width;
         renderCanvas();
-      }
+      };
       img.src = fr.result;
-    }
+    };
     fr.readAsDataURL(file);
 
     fileInput.classList.add('file-selected');
@@ -93,7 +93,6 @@
   }
 
   editorCanvas.onmousedown = function (ev) {
-    console.log(ev);
     if (!isDrawingLine) {
       isDrawingLine = true;
       canvasLineStart = getCanvasMousePosition(ev);
@@ -154,6 +153,7 @@
     } else if (state === 'loaded') {
       videoDisplay.classList.add('has-video');
     }
+    setTimeout(function () { videoDisplay.scrollIntoView(); }, 500);
   }
 
   // ------------------------------
@@ -164,44 +164,45 @@
 
     form.classList.add('is-processing');
     setVideoDisplayState('loading');
-    window.scrollTo(0, document.body.scrollHeight);
     ev.preventDefault();
 
-    var data = new FormData(form);
+    var ws_scheme = location.protocol === 'https:' ? 'wss://' : 'ws://'
+    var ws = new WebSocket(ws_scheme + location.host + '/generate-video');
 
-    // The file input actually comes empty because it is hidden,
-    // so we replace it's value with the actual file.
-    var fileKey = fileInput.querySelector('input').name;
-    data.delete(fileKey);
-    data.append(fileKey, selectedImageFile);
+    ws.onopen = function () {
+      var measurementType = form.querySelector('input[name="measurement-type"]:checked').value;
+      var measurementStart = canvasToImagePosition(canvasLineStart);
+      var measurementEnd = canvasToImagePosition(canvasLineEnd);
 
-    var measurementStart = canvasToImagePosition(canvasLineStart);
-    var measurementEnd = canvasToImagePosition(canvasLineEnd);
+      var fr = new FileReader();
+      fr.onload = function () {
+        var data = {
+          file: fr.result,
+          measurement: {
+            type: measurementType,
+            start: measurementStart,
+            end: measurementEnd,
+          },
+        };
+        ws.send(JSON.stringify(data));
+      };
+      fr.readAsDataURL(selectedImageFile);
+    };
 
-    data.append('measurement-start-x', measurementStart[0]);
-    data.append('measurement-start-y', measurementStart[1]);
-    data.append('measurement-end-x', measurementEnd[0]);
-    data.append('measurement-end-y', measurementEnd[1]);
-
-    var request = new XMLHttpRequest();
-    request.open(form.method, form.action);
-    request.responseType = 'blob';
-    request.onload = function () {
+    ws.onmessage = function (ev) {
       form.classList.remove('is-processing');
-      videoDisplay.classList.remove('is-loading');
 
-      var status = request.status;
-      if (status === 0 || (status >= 200 && status < 400)) {
-        var blob = request.response;
-        var contentDisposition = request.getResponseHeader('Content-Disposition');
-        var filename = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)[1];
-        setVideoDisplayContent(window.URL.createObjectURL(blob), filename);
-        setVideoDisplayState('loaded');
-        window.scrollTo(0, document.body.scrollHeight);
-      } else {
-        // TODO
-      }
-    }
-    request.send(data);
+      var data = JSON.parse(ev.data);
+      setVideoDisplayContent(data.file, data.filename);
+      setVideoDisplayState('loaded');
+      ws.close();
+    };
+    ws.onclose = function () {
+      form.classList.remove('is-processing');
+    };
+    ws.onerror = function (ev) {
+      form.classList.remove('is-processing');
+      // TODO
+    };
   };
 })();

@@ -1,5 +1,9 @@
+from base64 import b64encode
+import json
+import mimetypes
 import os
 from typing import Dict
+from urllib.request import urlopen
 import uuid
 
 from flask import (
@@ -10,6 +14,7 @@ from flask import (
     request,
     send_file,
 )
+from flask_sockets import Sockets
 import numpy as np
 from werkzeug.datastructures import FileStorage
 
@@ -22,6 +27,7 @@ DOWNLOAD_FILENAME = 'IslaMeasurement.mp4'
 
 app = Flask(__name__)
 app.config['FILES_FOLDER'] = FILES_FOLDER
+sockets = Sockets(app)
 
 
 def allowed_file(filename):
@@ -34,39 +40,36 @@ def editor():
     return render_template('editor.html')
 
 
-@app.route('/generate-video', methods=['POST'])
-def generate_video():
-    # check if the post request has the file part
-    if 'file' not in request.files:
-        flash('No file part')
-        return redirect(request.url)
-
-    file = request.files['file']
-    # If the user does not select a file, the browser submits an
-    # empty file without a filename.
-    if file.filename == '':
-        flash('No selected file')
-        return redirect(request.url)
-
-    if file and allowed_file(file.filename):
-        output_file_path = _process_file(file, request.form.to_dict())
-        return send_file(output_file_path, download_name=DOWNLOAD_FILENAME, as_attachment=True)
+@sockets.route('/generate-video')
+def generate_video(ws):
+    message = ws.receive()
+    data = json.loads(message)
+    # TODO: validate data
+    result = _process_file(data)
+    ws.send(json.dumps(result))
 
 
-def _process_file(file: FileStorage, payload: Dict) -> str:
-    file_extension = file.filename.rsplit('.', 1)[1]
+def _process_file(data: Dict) -> Dict:
+    file_url = data['file']
+    with urlopen(file_url) as response:
+        content_type = response.headers['Content-type']
+        file_data = response.read()
+
+    file_extension = mimetypes.guess_extension(content_type)
     file_id = uuid.uuid4()
     files_path = app.config['FILES_FOLDER']
     input_file_path = os.path.join(files_path, f'{file_id}-input.{file_extension}')
     output_file_path = os.path.join(files_path, f'{file_id}-output.mp4')
 
-    file.save(input_file_path)
+    with open(input_file_path, 'wb') as f:
+        f.write(file_data)
 
     # Get the measurement data
-    measure_type = MeasurementType(payload.get('measurement-type').lower())
+    measure_data = data['measurement']
+    measure_type = MeasurementType(measure_data['type'].lower())
     measurement = Line(
-        np.array([int(payload.get('measurement-start-x')), int(payload.get('measurement-start-y'))]),
-        np.array([int(payload.get('measurement-end-x')), int(payload.get('measurement-end-y'))])
+        np.array(measure_data['start']),
+        np.array(measure_data['end'])
     )
 
     create_video(
@@ -75,4 +78,17 @@ def _process_file(file: FileStorage, payload: Dict) -> str:
         measurement,
         output_file_path
     )
-    return output_file_path
+
+    with open(output_file_path, 'rb') as f:
+        encoded_video = b64encode(f.read()).decode()
+        return {
+            'filename': DOWNLOAD_FILENAME,
+            'file': f'data:video/mp4;base64,{encoded_video}',
+        }
+
+
+if __name__ == '__main__':
+    from gevent import pywsgi
+    from geventwebsocket.handler import WebSocketHandler
+    server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
+    server.serve_forever()

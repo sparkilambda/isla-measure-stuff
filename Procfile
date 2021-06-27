@@ -1,1 +1,1 @@
-web: gunicorn isla_measure_stuff.server:app
+web: gunicorn -k flask_sockets.worker isla_measure_stuff.server:app
