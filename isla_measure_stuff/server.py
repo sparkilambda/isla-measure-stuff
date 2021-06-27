@@ -13,15 +13,20 @@ from flask import (
 import numpy as np
 from werkzeug.datastructures import FileStorage
 
+from .constants import (
+    ALLOWED_EXTENSIONS,
+    DOWNLOAD_FILENAME,
+    RESULTS_TTL,
+    SERVER_FILES_FOLDER,
+)
 from .euclidean import Line
+from .polling_worker import PollingWorker
 from .video_creator import MeasurementType, create_video
 
-FILES_FOLDER = '/tmp'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-DOWNLOAD_FILENAME = 'IslaMeasurement.mp4'
 
 app = Flask(__name__)
-app.config['FILES_FOLDER'] = FILES_FOLDER
+app.config['FILES_FOLDER'] = SERVER_FILES_FOLDER
+worker = PollingWorker(target=create_video)
 
 
 def allowed_file(filename):
@@ -49,8 +54,18 @@ def generate_video():
         return redirect(request.url)
 
     if file and allowed_file(file.filename):
-        output_file_path = _process_file(file, request.form.to_dict())
+        execution_id = _process_file(file, request.form.to_dict())
+
+        return execution_id, 202
+
+
+@app.route('/get-video/<execution_id>')
+def get_video(execution_id: str):
+    if worker.is_done(execution_id):
+        output_file_path = worker.get_result(execution_id)
         return send_file(output_file_path, download_name=DOWNLOAD_FILENAME, as_attachment=True)
+    else:
+        return '', 204
 
 
 def _process_file(file: FileStorage, payload: Dict) -> str:
@@ -69,10 +84,12 @@ def _process_file(file: FileStorage, payload: Dict) -> str:
         np.array([int(payload.get('measurement-end-x')), int(payload.get('measurement-end-y'))])
     )
 
-    create_video(
+    execution_id = worker.process(
+        RESULTS_TTL,
         input_file_path,
         measure_type,
         measurement,
         output_file_path
     )
-    return output_file_path
+
+    return execution_id

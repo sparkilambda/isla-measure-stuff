@@ -93,7 +93,6 @@
   }
 
   editorCanvas.onmousedown = function (ev) {
-    console.log(ev);
     if (!isDrawingLine) {
       isDrawingLine = true;
       canvasLineStart = getCanvasMousePosition(ev);
@@ -154,17 +153,19 @@
     } else if (state === 'loaded') {
       videoDisplay.classList.add('has-video');
     }
+    setTimeout(function () { videoDisplay.scrollIntoView(); }, 100);
   }
 
   // ------------------------------
   // Submit
   // ------------------------------
+  var pollingTimeout = 5000;
+
   form.onsubmit = function (ev) {
     if (form.classList.contains('is-processing')) return false;
 
     form.classList.add('is-processing');
     setVideoDisplayState('loading');
-    window.scrollTo(0, document.body.scrollHeight);
     ev.preventDefault();
 
     var data = new FormData(form);
@@ -185,23 +186,44 @@
 
     var request = new XMLHttpRequest();
     request.open(form.method, form.action);
-    request.responseType = 'blob';
     request.onload = function () {
-      form.classList.remove('is-processing');
-      videoDisplay.classList.remove('is-loading');
-
       var status = request.status;
       if (status === 0 || (status >= 200 && status < 400)) {
-        var blob = request.response;
-        var contentDisposition = request.getResponseHeader('Content-Disposition');
-        var filename = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)[1];
-        setVideoDisplayContent(window.URL.createObjectURL(blob), filename);
-        setVideoDisplayState('loaded');
-        window.scrollTo(0, document.body.scrollHeight);
+        var pollingId = request.responseText;
+        pollGeneratedVideo(pollingId);
       } else {
+        form.classList.remove('is-processing');
         // TODO
+        console.log(request.responseText);
       }
     }
     request.send(data);
   };
+
+  function pollGeneratedVideo(pollingId) {
+    var request = new XMLHttpRequest();
+    request.open('GET', '/get-video/' + pollingId);
+    request.responseType = 'blob';
+    request.onload = function () {
+      var status = request.status;
+      if (status === 0 || (status >= 200 && status < 400)) {
+        var blob = request.response;
+        if (blob.size > 0) {
+          form.classList.remove('is-processing');
+
+          var contentDisposition = request.getResponseHeader('Content-Disposition');
+          var filename = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)[1];
+          setVideoDisplayContent(window.URL.createObjectURL(blob), filename);
+          setVideoDisplayState('loaded');
+        } else {
+          setTimeout(function () { pollGeneratedVideo(pollingId); }, pollingTimeout);
+        }
+      } else {
+        form.classList.remove('is-processing');
+        // TODO
+        console.log(request.responseText);
+      }
+    }
+    request.send(null);
+  }
 })();

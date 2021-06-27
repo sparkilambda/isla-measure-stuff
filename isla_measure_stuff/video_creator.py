@@ -48,7 +48,7 @@ _DATA_FOR_TYPE = {
 }
 
 
-def create_video(input_image_path, measure_type: MeasurementType, measurement: Line, output_path: str):
+def create_video(input_image_path, measure_type: MeasurementType, measurement: Line, output_path: str) -> str:
     assert(measurement.shape == (2,))
 
     isla_data = measure_type.get_isla_data()
@@ -83,6 +83,8 @@ def create_video(input_image_path, measure_type: MeasurementType, measurement: L
     )
     out = ffmpeg.output(generated_video, isla_stream.audio, output_path)
     out.run()
+
+    return output_path
 
 
 def _transform_image(image_stream: Stream, bg_image: Stream, image_trans: ImageTransformations) -> Stream:
