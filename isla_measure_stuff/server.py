@@ -1,4 +1,5 @@
 from base64 import b64encode
+from concurrent.futures import ThreadPoolExecutor
 import json
 import mimetypes
 import os
@@ -7,16 +8,11 @@ from urllib.request import urlopen
 import uuid
 
 from flask import (
-    flash,
     Flask,
-    redirect,
     render_template,
-    request,
-    send_file,
 )
 from flask_sockets import Sockets
 import numpy as np
-from werkzeug.datastructures import FileStorage
 
 from .euclidean import Line
 from .video_creator import MeasurementType, create_video
@@ -42,11 +38,24 @@ def editor():
 
 @sockets.route('/generate-video')
 def generate_video(ws):
-    message = ws.receive()
-    data = json.loads(message)
-    # TODO: validate data
-    result = _process_file(data)
-    ws.send(json.dumps(result))
+    while not ws.closed:
+        message = ws.receive()
+        if message is None:
+            continue
+        data = json.loads(message)
+
+        data_type = data['type']
+        if data_type == 'content':
+            def process_and_send():
+                result = _process_file(data)
+                result['type'] = 'content'
+                ws.send(json.dumps(result))
+                ws.close()
+            executor = ThreadPoolExecutor()
+            executor.submit(process_and_send)
+
+        if data_type == 'ping':
+            ws.send(json.dumps({'type': 'pong'}))
 
 
 def _process_file(data: Dict) -> Dict:

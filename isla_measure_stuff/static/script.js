@@ -159,6 +159,12 @@
   // ------------------------------
   // Submit
   // ------------------------------
+  var ws = null;
+  var pingInterval = 15000;
+  var pingTimeout = 30000;
+  var pingIntervalRef = null;
+  var pingTimeoutRef = null;
+
   form.onsubmit = function (ev) {
     if (form.classList.contains('is-processing')) return false;
 
@@ -167,42 +173,73 @@
     ev.preventDefault();
 
     var ws_scheme = location.protocol === 'https:' ? 'wss://' : 'ws://'
-    var ws = new WebSocket(ws_scheme + location.host + '/generate-video');
+    ws = new WebSocket(ws_scheme + location.host + '/generate-video');
 
-    ws.onopen = function () {
-      var measurementType = form.querySelector('input[name="measurement-type"]:checked').value;
-      var measurementStart = canvasToImagePosition(canvasLineStart);
-      var measurementEnd = canvasToImagePosition(canvasLineEnd);
+    ws.onopen = onSocketOpen;
+    ws.onmessage = onSocketMessage;
+    ws.onclose = onSocketClose;
+    ws.onerror = onSocketError;
+  };
 
-      var fr = new FileReader();
-      fr.onload = function () {
-        var data = {
-          file: fr.result,
-          measurement: {
-            type: measurementType,
-            start: measurementStart,
-            end: measurementEnd,
-          },
-        };
-        ws.send(JSON.stringify(data));
+  function sendPing() {
+    ws.send('{"type":"ping"}');
+    pingTimeoutRef = setTimeout(function () {
+      // TODO: ERROR
+      ws.close();
+    }, pingTimeout);
+  }
+  window.sendPing = sendPing;
+
+  function receivePong() {
+    clearTimeout(pingTimeoutRef);
+    pingIntervalRef = setTimeout(sendPing, pingInterval)
+  }
+
+  function onSocketOpen() {
+    var measurementType = form.querySelector('input[name="measurement-type"]:checked').value;
+    var measurementStart = canvasToImagePosition(canvasLineStart);
+    var measurementEnd = canvasToImagePosition(canvasLineEnd);
+
+    var fr = new FileReader();
+    fr.onload = function () {
+      var data = {
+        type: 'content',
+        file: fr.result,
+        measurement: {
+          type: measurementType,
+          start: measurementStart,
+          end: measurementEnd,
+        },
       };
-      fr.readAsDataURL(selectedImageFile);
+      ws.send(JSON.stringify(data));
     };
+    fr.readAsDataURL(selectedImageFile);
 
-    ws.onmessage = function (ev) {
+    pingIntervalRef = setTimeout(sendPing, pingInterval);
+  }
+
+  function onSocketMessage(ev) {
+    var data = JSON.parse(ev.data);
+    if (data.type === 'pong') {
+      receivePong();
+    }
+    if (data.type === 'content') {
       form.classList.remove('is-processing');
 
-      var data = JSON.parse(ev.data);
       setVideoDisplayContent(data.file, data.filename);
       setVideoDisplayState('loaded');
       ws.close();
-    };
-    ws.onclose = function () {
-      form.classList.remove('is-processing');
-    };
-    ws.onerror = function (ev) {
-      form.classList.remove('is-processing');
-      // TODO
-    };
-  };
+    }
+  }
+
+  function onSocketClose() {
+    form.classList.remove('is-processing');
+
+    clearTimeout(pingIntervalRef);
+  }
+
+  function onSocketError() {
+    form.classList.remove('is-processing');
+    // TODO
+  }
 })();
