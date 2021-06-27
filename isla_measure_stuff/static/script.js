@@ -1,16 +1,7 @@
 (function () {
   'use strict';
 
-  var selectedImageFile = null;
-  var selectedImage = null;
-  var canvasLineStart = null;
-  var canvasLineEnd = null;
-  var isDrawingLine = false;
   var form = document.querySelector('.measurement-form');
-  var fileInput = form.querySelector('.file-input');
-  var lineEditor = form.querySelector('.line-editor');
-  var editorCanvas = lineEditor.querySelector('canvas');
-  var videoDisplay = document.querySelector('.video-display');
 
   var isDragAndDropSupported = function() {
     var div = document.createElement('div');
@@ -27,8 +18,43 @@
   }
 
   // ------------------------------
+  // File input
+  // ------------------------------
+  var fileInput = form.querySelector('.file-input');
+
+  if (isDragAndDropSupported) {
+    fileInput.classList.add('has-drag-and-drop')
+  }
+
+  addEventsListener(fileInput, 'drag dragstart dragend dragover dragenter dragleave drop', function (ev) {
+    // Prevent default behavior (Prevent file from being opened)
+    ev.preventDefault();
+    ev.stopPropagation();
+  });
+  addEventsListener(fileInput, 'dragover dragenter', function () {
+    fileInput.classList.add('is-dragover');
+  });
+  addEventsListener(fileInput, 'dragleave dragend drop', function () {
+    fileInput.classList.remove('is-dragover');
+  });
+  addEventsListener(fileInput, 'drop', function (ev) {
+    var files = ev.dataTransfer.files;
+    if (files && files.length > 0) {
+      setImageFile(files[0]);
+    }
+  });
+
+  // ------------------------------
   // Canvas
   // ------------------------------
+  var lineEditor = form.querySelector('.line-editor');
+  var editorCanvas = lineEditor.querySelector('canvas');
+  var canvasLineStart = null;
+  var canvasLineEnd = null;
+  var isDrawingLine = false;
+  var selectedImageFile = null;
+  var selectedImage = null;
+
   function setImageFile(file) {
     selectedImageFile = file;
 
@@ -106,6 +132,8 @@
   // ------------------------------
   // Video display
   // ------------------------------
+  var videoDisplay = document.querySelector('.video-display');
+
   function setVideoDisplayContent(src, filename) {
     // Set the video on the video player
     var videoPlayer = videoDisplay.querySelector('video');
@@ -127,31 +155,6 @@
       videoDisplay.classList.add('has-video');
     }
   }
-
-  // ------------------------------
-  // File input
-  // ------------------------------
-  if (isDragAndDropSupported) {
-    fileInput.classList.add('has-drag-and-drop')
-  }
-
-  addEventsListener(fileInput, 'drag dragstart dragend dragover dragenter dragleave drop', function (ev) {
-    // Prevent default behavior (Prevent file from being opened)
-    ev.preventDefault();
-    ev.stopPropagation();
-  });
-  addEventsListener(fileInput, 'dragover dragenter', function () {
-    fileInput.classList.add('is-dragover');
-  });
-  addEventsListener(fileInput, 'dragleave dragend drop', function () {
-    fileInput.classList.remove('is-dragover');
-  });
-  addEventsListener(fileInput, 'drop', function (ev) {
-    var files = ev.dataTransfer.files;
-    if (files && files.length > 0) {
-      setImageFile(files[0]);
-    }
-  });
 
   // ------------------------------
   // Submit
